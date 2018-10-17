@@ -39,6 +39,9 @@ namespace dxvk {
 
   D3D11SwapChain::~D3D11SwapChain() {
     m_device->waitForIdle();
+    
+    if (m_backBuffer)
+      m_backBuffer->ReleasePrivate();
   }
 
 
@@ -264,6 +267,9 @@ namespace dxvk {
   void D3D11SwapChain::CreateBackBuffer() {
     // Explicitly destroy current swap image before
     // creating a new one to free up resources
+    if (m_backBuffer)
+      m_backBuffer->ReleasePrivate();
+    
     m_swapImage         = nullptr;
     m_swapImageResolve  = nullptr;
     m_swapImageView     = nullptr;
@@ -288,7 +294,9 @@ namespace dxvk {
       desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
     
     m_backBuffer = new D3D11Texture2D(m_parent, &desc);
-    m_swapImage = GetCommonTexture(m_backBuffer.ptr())->GetImage();
+    m_backBuffer->AddRefPrivate();
+
+    m_swapImage = GetCommonTexture(m_backBuffer)->GetImage();
 
     // If the image is multisampled, we need to create
     // another image which we'll use as a resolve target
