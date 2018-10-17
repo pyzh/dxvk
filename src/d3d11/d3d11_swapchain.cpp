@@ -7,22 +7,33 @@
 
 namespace dxvk {
 
+  static uint16_t MapGammaControlPoint(float x) {
+    if (x < 0.0f) x = 0.0f;
+    if (x > 1.0f) x = 1.0f;
+    return uint16_t(65535.0f * x);
+  }
+
+
   D3D11SwapChain::D3D11SwapChain(
           D3D11Device*            pDevice,
           HWND                    hWnd,
     const DXGI_SWAP_CHAIN_DESC1*  pDesc)
-  : m_parent(pDevice),
-    m_window(hWnd),
-    m_desc  (*pDesc) {
+  : m_parent  (pDevice),
+    m_window  (hWnd),
+    m_desc    (*pDesc),
+    m_device  (pDevice->GetDXVKDevice()),
+    m_context (m_device->createContext()) {
     
     // TODO deferred surface creation
     CreateSurface();
     CreateBackBuffer();
+    CreateHud();
     
-    InitGammaControl();
     InitRenderState();
     InitSamplers();
     InitShaders();
+
+    SetGammaControl(0, nullptr);
   }
 
 
@@ -77,7 +88,14 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D11SwapChain::ChangeProperties(
     const DXGI_SWAP_CHAIN_DESC1*  pDesc) {
+
+    m_dirty |= m_desc.Format      != pDesc->Format
+            || m_desc.Width       != pDesc->Width
+            || m_desc.Height      != pDesc->Height
+            || m_desc.BufferCount != pDesc->BufferCount;
+
     m_desc = *pDesc;
+    CreateBackBuffer();
     return S_OK;
   }
 
@@ -92,8 +110,32 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D11SwapChain::SetGammaControl(
           UINT                      NumControlPoints,
     const DXGI_RGB*                 pControlPoints) {
-    // TODO implement
-    return E_NOTIMPL;
+    if (NumControlPoints > 0) {
+      std::array<D3D11_VK_GAMMA_CP, 1025> cp;
+
+      if (NumControlPoints > cp.size())
+        return E_INVALIDARG;
+      
+      for (uint32_t i = 0; i < NumControlPoints; i++) {
+        cp[i].R = MapGammaControlPoint(pControlPoints[i].Red);
+        cp[i].G = MapGammaControlPoint(pControlPoints[i].Green);
+        cp[i].B = MapGammaControlPoint(pControlPoints[i].Blue);
+        cp[i].A = 0;
+      }
+
+      CreateGammaTexture(NumControlPoints, cp.data());
+    } else {
+      std::array<D3D11_VK_GAMMA_CP, 256> cp;
+
+      for (uint32_t i = 0; i < cp.size(); i++) {
+        const uint16_t value = 257 * i;
+        cp[i] = { value, value, value, 0 };
+      }
+
+      CreateGammaTexture(cp.size(), cp.data());
+    }
+
+    return S_OK;
   }
 
 
@@ -116,8 +158,11 @@ namespace dxvk {
 
 
   void D3D11SwapChain::PresentImage(UINT SyncInterval) {
+    // TODO sync interval
     // TODO sync event
-    // TODO hud
+    if (m_hud != nullptr)
+      m_hud->update();
+
     for (uint32_t i = 0; i < SyncInterval || i < 1; i++) {
       m_context->beginRecording(
         m_device->createCommandList());
@@ -185,6 +230,13 @@ namespace dxvk {
       m_context->bindResourceView(BindingIds::GammaTex, m_gammaTextureView, nullptr);
 
       m_context->draw(4, 1, 0, 0);
+
+      VkExtent2D hudSize = {
+        wsiImage->imageInfo().extent.width,
+        wsiImage->imageInfo().extent.height };
+
+      if (m_hud != nullptr)
+        m_hud->render(m_context, hudSize);
 
       m_device->submitCommandList(
         m_context->endRecording(),
@@ -349,7 +401,6 @@ namespace dxvk {
       m_gammaTextureView = m_device->createImageView(m_gammaTexture, viewInfo);
     }
 
-    // Write raw gamma curve to the texture
     m_context->beginRecording(
       m_device->createCommandList());
     
@@ -374,6 +425,8 @@ namespace dxvk {
 
 
   void D3D11SwapChain::CreateSwapChain() {
+    //TODO back buffer count option
+
     DxvkSwapchainProperties options;
     options.preferredSurfaceFormat      = PickSurfaceFormat();
     options.preferredPresentMode        = PickPresentMode();
@@ -391,18 +444,8 @@ namespace dxvk {
   }
 
 
-  void D3D11SwapChain::InitGammaControl() {
-    std::array<D3D11_VK_GAMMA_CP, 256> data;
-
-    for (uint32_t i = 0; i < data.size(); i++) {
-      uint16_t value = 257 * i;
-      data[i].R = value;
-      data[i].G = value;
-      data[i].B = value;
-      data[i].A = value;
-    }
-
-    CreateGammaTexture(data.size(), data.data());
+  void D3D11SwapChain::CreateHud() {
+    m_hud = hud::Hud::createHud(m_device);
   }
 
 

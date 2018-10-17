@@ -5,6 +5,8 @@
 #include "../dxvk/dxvk_surface.h"
 #include "../dxvk/dxvk_swapchain.h"
 
+#include "../dxvk/hud/dxvk_hud.h"
+
 namespace dxvk {
   
   class D3D11Device;
@@ -94,6 +96,8 @@ namespace dxvk {
     Rc<DxvkImage>           m_swapImageResolve;
     Rc<DxvkImageView>       m_swapImageView;
 
+    Rc<hud::Hud>            m_hud;
+
     DxvkInputAssemblyState  m_iaState;
     DxvkRasterizerState     m_rsState;
     DxvkMultisampleState    m_msState;
@@ -120,7 +124,7 @@ namespace dxvk {
 
     void CreateSwapChain();
 
-    void InitGammaControl();
+    void CreateHud();
 
     void InitRenderState();
 
