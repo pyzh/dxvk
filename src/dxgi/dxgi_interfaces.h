@@ -181,6 +181,11 @@ IDXGIVkPresenter : public IUnknown {
   virtual HRESULT STDMETHODCALLTYPE GetDevice(
           REFGUID     riid,
           void**      ppDevice) = 0;
+  
+  virtual HRESULT STDMETHODCALLTYPE CreateSwapChainForHwnd(
+          HWND                    hWnd,
+    const DXGI_SWAP_CHAIN_DESC1*  pDesc,
+          IDXGIVkSwapChain**      ppSwapChain) = 0;
 };
 
 
