@@ -71,6 +71,8 @@ namespace dxvk {
       GammaTex  = 3,
     };
 
+    Com<IDXGIVkDevice>      m_dxgiDevice;
+    
     D3D11Device*            m_parent;
     HWND                    m_window;
 

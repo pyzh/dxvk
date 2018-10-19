@@ -59,10 +59,10 @@ const std::string g_hullShaderCode =
   "hs_patch main_pc(InputPatch<vs_out, 3> ip) {\n"
   "  hs_patch ov;\n"
   "  ov.color = ip[0].color;\n"
-  "  ov.tessEdge[0] = 4.0f;\n"
-  "  ov.tessEdge[1] = 4.0f;\n"
-  "  ov.tessEdge[2] = 4.0f;\n"
-  "  ov.tessInner = 4.0f;\n"
+  "  ov.tessEdge[0] = 64.0f;\n"
+  "  ov.tessEdge[1] = 64.0f;\n"
+  "  ov.tessEdge[2] = 64.0f;\n"
+  "  ov.tessInner = 64.0f;\n"
   "  return ov;\n"
   "}\n"
   "[domain(\"tri\")]\n"
@@ -397,8 +397,10 @@ public:
     vsOffset = 12 * sizeof(Vertex);
     m_context->IASetVertexBuffers(0, 1, &m_vertexBuffer, &vsStride, &vsOffset);
     m_context->IASetIndexBuffer(m_indexBuffer.ptr(), DXGI_FORMAT_R32_UINT, 0);
+    for (uint32_t i = 0; i < 100; i++) {
     m_context->DrawIndexed(3, 0, 0);
     m_context->DrawIndexed(3, 3, 3);
+    }
     
     // Test default backface culling
     vsOffset = 18 * sizeof(Vertex);
@@ -408,26 +410,6 @@ public:
     m_context->OMSetRenderTargets(0, nullptr, nullptr);
     
     m_swapChain->Present(1, 0);
-    
-    // Test query results
-    while (true) {
-      UINT64 samplesPassed = 0;
-      
-      UINT queryStatus = m_context->GetData(
-        m_query.ptr(), &samplesPassed, sizeof(samplesPassed),
-        D3D11_ASYNC_GETDATA_DONOTFLUSH);
-      
-      if (queryStatus == S_OK) {
-        if (samplesPassed == 0)
-          std::cerr << "Occlusion query returned 0 samples" << std::endl;
-        break;
-      } else if (queryStatus == S_FALSE) {
-        std::this_thread::yield();
-      } else {
-        std::cerr << "Occlusion query failed" << std::endl;
-        break;
-      }
-    }
   }
   
   

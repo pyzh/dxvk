@@ -24,6 +24,10 @@ namespace dxvk {
     m_device  (pDevice->GetDXVKDevice()),
     m_context (m_device->createContext()) {
     
+    if (FAILED(pDevice->QueryInterface(__uuidof(IDXGIVkDevice),
+        reinterpret_cast<void**>(&m_dxgiDevice))))
+      throw DxvkError("D3D11: Incompatible device for swap chain");
+    
     if (!pDevice->GetOptions()->deferSurfaceCreation)
       CreateSurface();
     
@@ -146,6 +150,11 @@ namespace dxvk {
           UINT                      SyncInterval,
           UINT                      PresentFlags,
     const DXGI_PRESENT_PARAMETERS*  pPresentParameters) {
+    auto options = m_parent->GetOptions();
+
+    if (options->syncInterval >= 0)
+      SyncInterval = options->syncInterval;
+    
     bool vsync = SyncInterval != 0;
 
     m_dirty |= vsync != m_vsync;
@@ -161,13 +170,10 @@ namespace dxvk {
 
 
   void D3D11SwapChain::PresentImage(UINT SyncInterval) {
-    // TODO sync event
-
-    // Apply sync interval option if necessary
-    auto options = m_parent->GetOptions();
-
-    if (options->syncInterval >= 0)
-      SyncInterval = options->syncInterval;
+    // Wait for the sync event so that we
+    // respect the maximum frame latency
+    Rc<DxvkEvent> syncEvent = m_dxgiDevice->GetFrameSyncEvent();
+    syncEvent->wait();
     
     if (m_hud != nullptr)
       m_hud->update();
@@ -246,6 +252,13 @@ namespace dxvk {
 
       if (m_hud != nullptr)
         m_hud->render(m_context, hudSize);
+      
+      if (i + 1 >= SyncInterval) {
+        DxvkEventRevision eventRev;
+        eventRev.event    = syncEvent;
+        eventRev.revision = syncEvent->reset();
+        m_context->signalEvent(eventRev);
+      }
 
       m_device->submitCommandList(
         m_context->endRecording(),

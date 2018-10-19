@@ -10,6 +10,7 @@ namespace dxvk {
   class DxvkAdapter;
   class DxvkBuffer;
   class DxvkDevice;
+  class DxvkEvent;
   class DxvkImage;
 }
 
@@ -67,6 +68,8 @@ IDXGIVkDevice : public IDXGIDevice2 {
   virtual ~IDXGIVkDevice() { }
   
   virtual dxvk::Rc<dxvk::DxvkDevice> STDMETHODCALLTYPE GetDXVKDevice() = 0;
+  
+  virtual dxvk::Rc<dxvk::DxvkEvent> STDMETHODCALLTYPE GetFrameSyncEvent() = 0;
 };
 
 
