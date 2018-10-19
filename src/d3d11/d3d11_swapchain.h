@@ -107,7 +107,7 @@ namespace dxvk {
     DxvkLogicOpState        m_loState;
     DxvkBlendMode           m_blendMode;
 
-    D3D11Texture2D*         m_backBuffer;
+    D3D11Texture2D*         m_backBuffer = nullptr;
 
     bool                    m_dirty = true;
     bool                    m_vsync = true;
