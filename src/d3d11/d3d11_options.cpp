@@ -10,6 +10,7 @@ namespace dxvk {
     this->fakeStreamOutSupport  = config.getOption<bool>("d3d11.fakeStreamOutSupport",  false);
     this->maxTessFactor         = config.getOption<int32_t>("d3d11.maxTessFactor",      0);
     this->samplerAnisotropy     = config.getOption<int32_t>("d3d11.samplerAnisotropy",  -1);
+    this->deferSurfaceCreation  = config.getOption<bool>("dxgi.deferSurfaceCreation",   false);
   }
   
 }

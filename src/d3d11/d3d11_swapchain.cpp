@@ -24,8 +24,9 @@ namespace dxvk {
     m_device  (pDevice->GetDXVKDevice()),
     m_context (m_device->createContext()) {
     
-    // TODO deferred surface creation
-    CreateSurface();
+    if (!pDevice->GetOptions()->deferSurfaceCreation)
+      CreateSurface();
+    
     CreateBackBuffer();
     CreateHud();
     
@@ -50,7 +51,6 @@ namespace dxvk {
           void**                  ppvObject) {
     InitReturnPtr(ppvObject);
 
-    // TODO COM interface
     if (riid == __uuidof(IUnknown)
      || riid == __uuidof(IDXGIVkSwapChain)) {
       *ppvObject = ref(this);

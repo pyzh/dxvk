@@ -43,6 +43,11 @@ namespace dxvk {
     /// Enforces anisotropic filtering with the
     /// given anisotropy value for all samplers.
     int32_t samplerAnisotropy;
+    
+    /// Defer surface creation until first present call. This
+    /// fixes issues with games that create multiple swap chains
+    /// for a single window that may interfere with each other.
+    bool deferSurfaceCreation;
   };
   
 }
