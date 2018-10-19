@@ -161,8 +161,14 @@ namespace dxvk {
 
 
   void D3D11SwapChain::PresentImage(UINT SyncInterval) {
-    // TODO sync interval
     // TODO sync event
+
+    // Apply sync interval option if necessary
+    auto options = m_parent->GetOptions();
+
+    if (options->syncInterval >= 0)
+      SyncInterval = options->syncInterval;
+    
     if (m_hud != nullptr)
       m_hud->update();
 
@@ -433,22 +439,25 @@ namespace dxvk {
 
 
   void D3D11SwapChain::CreateSwapChain() {
-    //TODO back buffer count option
+    auto options = m_parent->GetOptions();
 
-    DxvkSwapchainProperties options;
-    options.preferredSurfaceFormat      = PickSurfaceFormat();
-    options.preferredPresentMode        = PickPresentMode();
-    options.preferredBufferSize.width   = m_desc.Width;
-    options.preferredBufferSize.height  = m_desc.Height;
-    options.preferredBufferCount        = m_desc.BufferCount;
+    DxvkSwapchainProperties swapInfo;
+    swapInfo.preferredSurfaceFormat     = PickSurfaceFormat();
+    swapInfo.preferredPresentMode       = PickPresentMode();
+    swapInfo.preferredBufferSize.width  = m_desc.Width;
+    swapInfo.preferredBufferSize.height = m_desc.Height;
+    swapInfo.preferredBufferCount       = m_desc.BufferCount;
+
+    if (options->numBackBuffers > 0)
+      swapInfo.preferredBufferCount = options->numBackBuffers;
 
     if (m_surface == nullptr)
       CreateSurface();
     
     if (m_swapchain == nullptr)
-      m_swapchain = m_device->createSwapchain(m_surface, options);
+      m_swapchain = m_device->createSwapchain(m_surface, swapInfo);
     else
-      m_swapchain->changeProperties(options);
+      m_swapchain->changeProperties(swapInfo);
   }
 
 
